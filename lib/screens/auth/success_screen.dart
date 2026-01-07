@@ -16,41 +16,51 @@ class SuccessScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Party popper illustration
+              // Ilustrasi sukses
               Image.asset(
                 'assets/images/party_popper.png',
                 width: 250,
                 height: 250,
                 fit: BoxFit.contain,
               ),
+
               const SizedBox(height: 48),
+
               Text(
-                'Congratulations!',
+                'Pendaftaran Berhasil!',
                 style: AppTextStyles.h1,
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 16),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  'We\'ve sent you a verification email, please check your inbox and follow the instructions to verify your account.',
+                  'Kami telah mengirimkan email verifikasi. '
+                  'Silakan cek kotak masuk email Anda dan ikuti instruksi '
+                  'untuk memverifikasi akun.',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.brownFont,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
+
               const SizedBox(height: 16),
+
               Text(
-                'Thank you for signing up with us!',
+                'Terima kasih telah mendaftar di aplikasi kami!',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: AppColors.brownFont,
                 ),
                 textAlign: TextAlign.center,
               ),
+
               const SizedBox(height: 48),
+
               CustomButton(
-                text: 'Sign in here',
+                text: 'Masuk ke Akun',
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,

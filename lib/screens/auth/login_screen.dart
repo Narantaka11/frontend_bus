@@ -44,13 +44,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final token = data['token'];
       final userMap = data['user'];
       final userName = userMap['name'];
+
       await SessionManager.saveSession(token);
       await SessionManager.saveUserName(userName);
-      print(data);
-      print(data.runtimeType);
-      print(data['user']);
-      print(data['user'].runtimeType);
-
 
       Navigator.pushReplacement(
         context,
@@ -60,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final message = e.toString().replaceAll('Exception: ', '');
       if (message.toLowerCase().contains('invalid')) {
         setState(() {
-          _passwordError = 'Email atau Password salah';
+          _passwordError = 'Email atau kata sandi salah';
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                Text('Login', style: AppTextStyles.h1),
+                Text('Masuk', style: AppTextStyles.h1),
                 const SizedBox(height: 8),
                 Text(
                   'Selamat datang kembali',
@@ -94,10 +90,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+
                 // EMAIL
                 CustomTextField(
-                  label: 'Email Address',
-                  hint: 'hello@example.com',
+                  label: 'Alamat Email',
+                  hint: 'contoh@email.com',
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   errorText: _emailError,
@@ -110,15 +107,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Masukkan email dengan benar';
+                      return 'Email tidak boleh kosong';
                     }
                     if (!value.contains('@')) {
-                      return 'Masukkan email dengan benar';
+                      return 'Format email tidak valid';
                     }
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 20),
+
                 // PASSWORD
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Password',
+                          'Kata Sandi',
                           style: TextStyle(
                             color: AppColors.textDark,
                             fontSize: 14,
@@ -137,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: () {},
                           child: Text(
-                            'Lupa Password?',
+                            'Lupa Kata Sandi?',
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.error,
                             ),
@@ -160,17 +159,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Masukkan password dengan benar';
+                          return 'Kata sandi tidak boleh kosong';
                         }
                         if (value.length < 6) {
-                          return 'Password harus lebih dari 6 karakter';
+                          return 'Kata sandi minimal 6 karakter';
                         }
                         return null;
                       },
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+
                 // KEEP SIGNED IN
                 Row(
                   children: [
@@ -190,23 +191,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 32),
+
                 CustomButton(
-                  text: 'Login',
+                  text: 'Masuk',
                   onPressed: _handleLogin,
                 ),
+
                 const SizedBox(height: 24),
+
                 Row(
                   children: [
                     Expanded(child: Divider(color: AppColors.textLight)),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('atau login dengan', style: AppTextStyles.caption),
+                      child: Text(
+                        'atau masuk dengan',
+                        style: AppTextStyles.caption,
+                      ),
                     ),
                     Expanded(child: Divider(color: AppColors.textLight)),
                   ],
                 ),
+
                 const SizedBox(height: 24),
+
                 GoogleSignInButton(
                   onPressed: () {
                     Navigator.pushReplacement(
@@ -215,7 +225,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                 ),
+
                 const SizedBox(height: 32),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

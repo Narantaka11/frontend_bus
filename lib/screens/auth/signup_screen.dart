@@ -21,6 +21,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _agreedToTerms = false;
 
   @override
@@ -30,13 +31,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
   void _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please agree to the terms of service'),
+          content: Text('Silakan setujui syarat dan ketentuan'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -44,23 +46,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
-      print('SIGNUP BUTTON PRESSED');
       final data = await AuthService.register(
         _nameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,
       );
-      print('REGISTER SUCCESS: $data');
+
       await SessionManager.saveSession(data['token']);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const SuccessScreen()),
       );
     } catch (e) {
-      print('REGISTER ERROR');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -79,62 +80,72 @@ class _SignUpScreenState extends State<SignUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                Text(
-                  'Buat akun',
-                  style: AppTextStyles.h1,
-                ),
+
+                Text('Buat Akun', style: AppTextStyles.h1),
                 const SizedBox(height: 8),
                 Text(
-                  'Selamat datang kembali',
+                  'Daftarkan akun baru untuk melanjutkan',
                   style: AppTextStyles.bodyMedium.copyWith(
                     color: AppColors.textGray,
                   ),
                 ),
+
                 const SizedBox(height: 32),
+
+                // NAMA
                 CustomTextField(
-                  label: 'Nama',
-                  hint: 'John Doe',
+                  label: 'Nama Lengkap',
+                  hint: 'Contoh: Budi Santoso',
                   controller: _nameController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Masukkan nama';
+                      return 'Nama tidak boleh kosong';
                     }
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 20),
+
+                // EMAIL
                 CustomTextField(
-                  label: 'Email Address',
-                  hint: 'hello@example.com',
+                  label: 'Alamat Email',
+                  hint: 'contoh@email.com',
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Silahkan masukkan email';
+                      return 'Email tidak boleh kosong';
                     }
                     if (!value.contains('@')) {
-                      return 'Masukkan email yang valid';
+                      return 'Format email tidak valid';
                     }
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 20),
+
+                // PASSWORD
                 CustomTextField(
-                  label: 'Password',
+                  label: 'Kata Sandi',
                   hint: '••••••••••••',
                   controller: _passwordController,
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Masukkan password';
+                      return 'Kata sandi tidak boleh kosong';
                     }
                     if (value.length < 6) {
-                      return 'Password harus lebih dari 6 karakter';
+                      return 'Kata sandi minimal 6 karakter';
                     }
                     return null;
                   },
                 ),
+
                 const SizedBox(height: 16),
+
+                // SYARAT & KETENTUAN
                 Row(
                   children: [
                     SizedBox(
@@ -151,20 +162,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Row(
+                      child: Wrap(
                         children: [
                           Text(
-                            'By continuing, you agree to our ',
+                            'Dengan melanjutkan, Anda menyetujui ',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textDark,
                             ),
                           ),
                           GestureDetector(
                             onTap: () {
-                              // Show terms of service
+                              // TODO: tampilkan syarat & ketentuan
                             },
                             child: Text(
-                              'terms of service',
+                              'Syarat & Ketentuan',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.error,
                                 decoration: TextDecoration.underline,
@@ -182,12 +193,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 32),
+
                 CustomButton(
                   text: 'Daftar',
                   onPressed: _handleSignUp,
                 ),
+
                 const SizedBox(height: 24),
+
                 Row(
                   children: [
                     Expanded(child: Divider(color: AppColors.textLight)),
@@ -201,22 +216,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     Expanded(child: Divider(color: AppColors.textLight)),
                   ],
                 ),
+
                 const SizedBox(height: 24),
+
                 GoogleSignInButton(
                   onPressed: () {
-                    // Handle Google sign up
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const SuccessScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const SuccessScreen(),
+                      ),
                     );
                   },
                 ),
+
                 const SizedBox(height: 32),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Sudah mempunyai akun? ',
+                      'Sudah punya akun? ',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textDark,
                       ),
@@ -225,7 +245,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
                         );
                       },
                       style: TextButton.styleFrom(
@@ -234,7 +256,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Masuk disini',
+                        'Masuk di sini',
                         style: AppTextStyles.link.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
