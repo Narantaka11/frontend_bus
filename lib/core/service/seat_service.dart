@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class SeatService {
-  static const String baseUrl = 'http://localhost:3000';
-
-  static Future<List<Map<String, dynamic>>> getSeatsByTrip(String tripId) async {
+  static Future<List<Map<String, dynamic>>> getSeatsByTrip(
+    String tripId,
+  ) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/public/trips/$tripId'),
+      Uri.parse('${ApiConfig.baseUrl}public/trips/$tripId'),
       headers: {'Content-Type': 'application/json'},
     );
 

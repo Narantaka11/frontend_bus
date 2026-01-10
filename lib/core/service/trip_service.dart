@@ -19,11 +19,15 @@ class TripService {
     final List data = jsonDecode(res.body);
     return data.cast<Map<String, dynamic>>();
   }
+
   /// Ambil trips berdasarkan route (dipakai di BusSelection)
   static Future<List<Map<String, dynamic>>> getTripsByRoute(
-      String routeId, String date) async {
-    final url =
-        Uri.parse('${ApiConfig.baseUrl}public/trips?routeId=$routeId&date=$date');
+    String routeId,
+    String date,
+  ) async {
+    final url = Uri.parse(
+      '${ApiConfig.baseUrl}public/trips',
+    ).replace(queryParameters: {'routeId': routeId, 'date': date});
 
     final res = await http.get(url);
 

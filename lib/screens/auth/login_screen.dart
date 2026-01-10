@@ -6,6 +6,7 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/google_sign_in_button.dart';
 import 'signup_screen.dart';
 import '../home/home_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 import '../../core/service/auth_service.dart';
 import '../../core/service/session_manager.dart';
 
@@ -44,14 +45,25 @@ class _LoginScreenState extends State<LoginScreen> {
       final token = data['token'];
       final userMap = data['user'];
       final userName = userMap['name'];
+      final userRole = userMap['role'] ?? 'USER';
 
       await SessionManager.saveSession(token);
       await SessionManager.saveUserName(userName);
+      await SessionManager.saveUserRole(userRole);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      if (!mounted) return;
+
+      if (userRole == 'ADMIN') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } catch (e) {
       final message = e.toString().replaceAll('Exception: ', '');
       if (message.toLowerCase().contains('invalid')) {
@@ -60,10 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.error,
-          ),
+          SnackBar(content: Text(message), backgroundColor: AppColors.error),
         );
       }
     }
@@ -194,10 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 32),
 
-                CustomButton(
-                  text: 'Masuk',
-                  onPressed: _handleLogin,
-                ),
+                CustomButton(text: 'Masuk', onPressed: _handleLogin),
 
                 const SizedBox(height: 24),
 
@@ -240,10 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-                      child: Text(
-                        'Buat akun baru',
-                        style: AppTextStyles.link,
-                      ),
+                      child: Text('Buat akun baru', style: AppTextStyles.link),
                     ),
                   ],
                 ),

@@ -22,4 +22,25 @@ class RouteService {
       };
     }).toList();
   }
+
+  static Future<Map<String, dynamic>?> getRouteById(String id) async {
+    try {
+      final routes = await getPublicRoutes();
+      return routes.firstWhere((r) => r['id'] == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTerminals() async {
+    final url = Uri.parse('${ApiConfig.baseUrl}terminals');
+    final response = await http.get(url);
+
+    if (response.statusCode != 200) {
+      return [];
+    }
+
+    final List data = jsonDecode(response.body);
+    return data.cast<Map<String, dynamic>>();
+  }
 }

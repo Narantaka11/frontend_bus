@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
-import '../../core/service/trip_service.dart';
 import '../../core/service/route_service.dart';
+import '../../core/service/trip_service.dart';
 import 'seat_selection_screen.dart';
 
 class BusSelectionScreen extends StatefulWidget {
@@ -27,34 +27,157 @@ class _BusSelectionScreenState extends State<BusSelectionScreen> {
   Future<List<dynamic>>? _tripsFuture;
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    // 1. Load Route Details (for Header)
+    final route = await RouteService.getRouteById(widget.routeId);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedRoute = route;
+      // 2. Load Trips
+      _tripsFuture = TripService.getTripsByRoute(widget.routeId, widget.date);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            _buildRouteSummary(),
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Redesigned Route Header Card
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.brown900,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                children: [
+                  // Bus Icon
+                  const Icon(
+                    Icons.directions_bus_filled,
+                    color: AppColors.white,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Route (Origin <-> Destination)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _selectedRoute?['origin'] ?? 'Origin',
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: AppColors.orange400,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.swap_horiz,
+                          color: AppColors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        _selectedRoute?['destination'] ?? 'Dest',
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Date Display
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: AppColors.white.withOpacity(0.5),
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        formatDate(widget.date), // Using formatted date
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
 
-            /// ================= BUS LIST =================
             Expanded(
               child: _selectedRoute == null
-                  ? const Center(child: Text('Please select route'))
+                  ? const Center(child: Text('Loading route info...'))
                   : FutureBuilder<List<dynamic>>(
                       future: _tripsFuture,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const Center(
-                              child: CircularProgressIndicator());
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         if (snapshot.hasError) {
                           return Center(
                             child: Text(
                               snapshot.error.toString(),
-                              style:
-                                  const TextStyle(color: Colors.red),
+                              style: const TextStyle(color: Colors.red),
                             ),
                           );
                         }
@@ -62,45 +185,42 @@ class _BusSelectionScreenState extends State<BusSelectionScreen> {
                         final trips = snapshot.data!;
                         if (trips.isEmpty) {
                           return const Center(
-                              child: Text('No buses available'));
+                            child: Text('No buses available'),
+                          );
                         }
 
                         return ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: trips.length,
                           itemBuilder: (context, index) {
                             final trip = trips[index];
                             final bus = trip['bus'];
 
-                            final departure =
-                                formatTime(trip['departureTime']);
-                            final arrival =
-                                formatTime(trip['arrivalTime']);
+                            final departure = formatTime(trip['departureTime']);
+                            final arrival = formatTime(trip['arrivalTime']);
                             final seatsLeft =
                                 trip['availableSeats'] ?? bus['totalSeat'];
-
+                            // Calculate duration (dummy calculation or from data)
+                            // Assuming arrival > departure for sim
+                            final duration = '45 Min';
 
                             return Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 16),
                               child: _buildBusCard(
                                 name: bus['name'],
-                                totalSeat: bus['totalSeat'],
+                                busType: 'Executive', // Placeholder
+                                seatConfig: 'A/C (2+2)', // Placeholder
                                 departureTime: departure,
                                 arrivalTime: arrival,
+                                duration: duration,
                                 price: 'IDR ${trip['price']}',
                                 seatsLeft: seatsLeft,
-                                seatsColor: seatsLeft > 5
-                                    ? AppColors.success
-                                    : AppColors.error,
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) =>
-                                          SeatSelectionScreen(
-                                              trip: trip),
+                                          SeatSelectionScreen(trip: trip),
                                     ),
                                   );
                                 },
@@ -121,169 +241,16 @@ class _BusSelectionScreenState extends State<BusSelectionScreen> {
     );
   }
 
-  // ================= HEADER =================
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 24,
-            backgroundColor: AppColors.orange200,
-            child: Icon(Icons.person, color: AppColors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Hello!',
-                    style:
-                        AppTextStyles.h4.copyWith(fontSize: 16)),
-                Text('Select your bus!',
-                    style: AppTextStyles.caption),
-              ],
-            ),
-          ),
-          _iconBox(Icons.filter_list),
-          const SizedBox(width: 12),
-          _iconBox(Icons.notifications_outlined),
-        ],
-      ),
-    );
-  }
-
-  // ================= ROUTE SUMMARY =================
-
-  Widget _buildRouteSummary() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.brown900,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          children: [
-            const Icon(Icons.directions_bus,
-                size: 60, color: AppColors.white),
-            const SizedBox(height: 16),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _routeSelector(
-                  label:
-                      _selectedRoute?['origin'] ?? 'From',
-                ),
-                const SizedBox(width: 12),
-                const Icon(Icons.swap_horiz,
-                    color: AppColors.orangeButton),
-                const SizedBox(width: 12),
-                _routeSelector(
-                  label:
-                      _selectedRoute?['destination'] ?? 'To',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            InkWell(
-              onTap: _openRoutePicker,
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.white),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  _selectedRoute == null
-                      ? 'Tap to select route'
-                      : formatDate(_selectedRoute!['createdAt']),
-                  style:
-                      const TextStyle(color: AppColors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _routeSelector({required String label}) {
-    return InkWell(
-      onTap: _openRoutePicker,
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: AppTextStyles.h3.copyWith(
-              color: AppColors.white,
-              decoration: TextDecoration.underline,
-            ),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.keyboard_arrow_down,
-              color: AppColors.white),
-        ],
-      ),
-    );
-  }
-
-  // ================= ROUTE PICKER =================
-
-  void _openRoutePicker() async {
-    final routes = await RouteService.getPublicRoutes();
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        return ListView.builder(
-          itemCount: routes.length,
-          itemBuilder: (context, index) {
-            final route = routes[index];
-            return ListTile(
-              title: Text(
-                  '${route['origin']} → ${route['destination']}'),
-              subtitle:
-                  Text('${route['distanceKm']} km'),
-              onTap: () {
-                setState(() {
-                  _selectedRoute = route;
-                  _tripsFuture =
-                      TripService.getTripsByRoute(
-                          route['id'],
-                          widget.date);
-                });
-                Navigator.pop(context);
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
   // ================= BUS CARD =================
-
   Widget _buildBusCard({
     required String name,
-    required int totalSeat,
+    required String busType,
+    required String seatConfig,
     required String departureTime,
     required String arrivalTime,
+    required String duration,
     required String price,
     required int seatsLeft,
-    required Color seatsColor,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -292,41 +259,107 @@ class _BusSelectionScreenState extends State<BusSelectionScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-                color:
-                    AppColors.black.withOpacity(0.05),
-                blurRadius: 10),
+              color: AppColors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(name,
-                      style: AppTextStyles.h4
-                          .copyWith(fontSize: 16)),
-                ),
-                Text(price, style: AppTextStyles.price),
-              ],
+            // Left Section (Details)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name, // e.g. DJAWA EXECUTIVE
+                    style: AppTextStyles.h4.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    seatConfig, // e.g. A/C (2+2)
+                    style: const TextStyle(
+                      color: AppColors.textGray,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        departureTime,
+                        style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 8),
+                        width: 12,
+                        height: 1,
+                        color: AppColors.textGray,
+                      ),
+                      Text(
+                        arrivalTime,
+                        style: const TextStyle(
+                          color: AppColors.textGray,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$seatsLeft Seats left',
+                    style: const TextStyle(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Text('Total $totalSeat Seats',
-                style: AppTextStyles.caption),
-            const SizedBox(height: 8),
-            Row(
+
+            // Right Section (Price & Info)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('$departureTime — $arrivalTime',
-                    style: AppTextStyles.bodyMedium),
-                const Spacer(),
                 Text(
-                  '$seatsLeft Seats left',
-                  style: TextStyle(
-                      color: seatsColor,
-                      fontWeight: FontWeight.w600),
+                  price,
+                  style: const TextStyle(
+                    color: AppColors.orange600,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  duration,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _amenityIcon(Icons.wifi),
+                    const SizedBox(width: 8),
+                    _amenityIcon(Icons.electrical_services),
+                    const SizedBox(width: 8),
+                    _amenityIcon(Icons.chair),
+                  ],
                 ),
               ],
             ),
@@ -336,21 +369,8 @@ class _BusSelectionScreenState extends State<BusSelectionScreen> {
     );
   }
 
-  Widget _iconBox(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-              color:
-                  AppColors.black.withOpacity(0.05),
-              blurRadius: 10),
-        ],
-      ),
-      child: Icon(icon, color: AppColors.textDark),
-    );
+  Widget _amenityIcon(IconData icon) {
+    return Icon(icon, size: 16, color: AppColors.textGray.withOpacity(0.6));
   }
 }
 

@@ -7,6 +7,11 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/admin/admin_booking_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/admin_bus_screen.dart';
+import 'screens/admin/admin_route_screen.dart';
+import 'screens/admin/admin_user_screen.dart';
 
 void main() {
   runApp(const BusBookingApp());
@@ -28,25 +33,41 @@ class BusBookingApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const HomeScreen(),
         '/profile': (_) => const ProfileScreen(),
+        '/admin/bookings': (_) => const AdminBookingScreen(),
+        '/admin/dashboard': (_) => const AdminDashboardScreen(),
+        '/admin/buses': (_) => const AdminBusScreen(),
+        '/admin/routes': (_) => const AdminRouteScreen(),
+        '/admin/users': (_) => const AdminUserScreen(),
       },
 
       // ================= INITIAL LOGIC =================
-      home: FutureBuilder<bool>(
-        future: SessionManager.isLoggedIn(),
+      home: FutureBuilder<String?>(
+        future: SessionManager.getToken(),
         builder: (context, snapshot) {
-          // Loading saat cek session
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
 
-          // Sudah login
-          if (snapshot.data == true) {
-            return const HomeScreen();
+          if (snapshot.hasData && snapshot.data != null) {
+            return FutureBuilder<String?>(
+              future: SessionManager.getUserRole(),
+              builder: (context, roleSnapshot) {
+                if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (roleSnapshot.data == 'ADMIN') {
+                  return const AdminDashboardScreen();
+                }
+                return const HomeScreen();
+              },
+            );
           }
 
-          // Belum login
           return const OnboardingScreen();
         },
       ),

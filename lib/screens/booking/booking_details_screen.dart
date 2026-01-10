@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
 import '../../widgets/bottom_nav_bar.dart';
-import '../../widgets/custom_button.dart';
-import 'traveller_info_screen.dart';
+import 'payment_screen.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
-  final List<String> selectedSeats;
-  final Map<String,dynamic>trip;
+  final Map<String, dynamic> trip;
+  final List<String> selectedSeats; // Codes for display
+  final List<String> selectedSeatIds; // IDs for API
+  final String boardingPoint;
+  final String dropPoint;
 
   const BookingDetailsScreen({
     super.key,
-    required this.selectedSeats,
     required this.trip,
+    required this.selectedSeats,
+    required this.selectedSeatIds,
+    required this.boardingPoint,
+    required this.dropPoint,
   });
 
   @override
@@ -21,231 +25,237 @@ class BookingDetailsScreen extends StatefulWidget {
 
 class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   int _currentNavIndex = 1;
-  String? _boardingPoint;
-  String? _dropPoint;
+
+  // Example for simple form handling of multiple passengers
+  // In a real app, use Form/TextEditingControllers properly managed
+  final List<Map<String, dynamic>> _passengerData = [];
+
+  final TextEditingController _phoneController = TextEditingController(
+    text: '19231382',
+  );
+  final TextEditingController _emailController = TextEditingController(
+    text: 'shinta@gmail.coy',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize data for each selected seat
+    for (var i = 0; i < widget.selectedSeats.length; i++) {
+      _passengerData.add({
+        'name': '',
+        'age': '',
+        'gender': 'Female', // Default
+      });
+    }
+    // Pre-fill dummy data to match image if needed, or leave blank
+    if (_passengerData.isNotEmpty) {
+      _passengerData[0]['name'] = 'Nanda febriani';
+      _passengerData[0]['age'] = '22';
+    }
+    if (_passengerData.length > 1) {
+      _passengerData[1]['name'] = 'Shinta septiani';
+      _passengerData[1]['age'] = '22';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final totalFare = widget.selectedSeats.length * 200000;
+    final route = widget.trip['route'];
 
     return Scaffold(
+      backgroundColor:
+          AppColors.background, // Ensure we have a bg color or default white
       body: SafeArea(
-        child: Column(
-          children: [
-            // ================= HEADER =================
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: _iconBox(Icons.arrow_back),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello Nanda!',
-                          style: AppTextStyles.h4.copyWith(fontSize: 16),
-                        ),
-                        Text(
-                          'Confirm your booking',
-                          style: AppTextStyles.caption,
-                        ),
-                      ],
-                    ),
-                  ),
-                  _iconBox(Icons.notifications_outlined),
-                ],
-              ),
-            ),
-
-            // ================= ROUTE SUMMARY =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // ================= HEADER CARD =================
+              // ================= HEADER CARD =================
+              Container(
+                margin: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.brown900,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Bogor',
-                      style: AppTextStyles.h4.copyWith(
-                        color: AppColors.white,
-                        fontSize: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: AppColors.orangeButton,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.swap_horiz,
-                        color: AppColors.white,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Surabaya',
-                      style: AppTextStyles.h4.copyWith(
-                        color: AppColors.white,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ================= BUS INFO =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Perera Travels',
-                            style: AppTextStyles.h4.copyWith(fontSize: 16),
-                          ),
-                          Text(
-                            'A/C Sleeper (2+2)',
-                            style: AppTextStyles.caption,
-                          ),
-                          Text(
-                            '9:00 AM — 9:45 AM',
-                            style: AppTextStyles.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'IDR 200,000',
-                          style: AppTextStyles.price.copyWith(fontSize: 18),
-                        ),
-                        Text('45 Min', style: AppTextStyles.caption),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ================= CONTENT =================
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    _dropdownBox(
-                      icon: Icons.location_on_outlined,
-                      hint: 'Select Boarding Point',
-                      value: _boardingPoint,
-                      items: const ['Terminal A', 'Terminal B', 'Terminal C'],
-                      onChanged: (v) => setState(() => _boardingPoint = v),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _dropdownBox(
-                      icon: Icons.place_outlined,
-                      hint: 'Select Drop Point',
-                      value: _dropPoint,
-                      items: const ['Terminal X', 'Terminal Y', 'Terminal Z'],
-                      onChanged: (v) => setState(() => _dropPoint = v),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // ================= SUMMARY =================
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
+                    // Top Row: Back Button
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: Row(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Text('Selected Seats'),
-                              Text('Total Fare'),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                widget.selectedSeats.join(', '),
-                                style: AppTextStyles.h4,
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                color: AppColors.white,
+                                shape: BoxShape.circle,
                               ),
-                              Text(
-                                'IDR ${totalFare.toString().replaceAllMapped(
-                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                                  (m) => '${m[1]},',
-                                )}',
-                                style: AppTextStyles.h4.copyWith(
-                                  color: AppColors.brownFont,
-                                ),
+                              child: const Icon(
+                                Icons.arrow_back,
+                                size: 20,
+                                color: AppColors.brown900,
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 24),
-
-                    CustomButton(
-                      text: 'Proceed',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TravellerInfoScreen(
-                              selectedSeats: widget.selectedSeats,
+                    // Main Info
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Left info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${route['origin']} - ${route['destination']}',
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'A/C (2+2)',
+                                  style: TextStyle(
+                                    color: AppColors.textGray,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatTripDateTime(widget.trip),
+                                  style: const TextStyle(
+                                    color: AppColors.textGray,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.location_on,
+                                        color: AppColors.orange400,
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          '${widget.boardingPoint} > ${widget.dropPoint}',
+                                          style: const TextStyle(
+                                            color: AppColors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
+                          // Right Bus Icon
+                          const Icon(
+                            Icons.directions_bus,
+                            color: AppColors.white,
+                            size: 80,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+
+              // ================= TRAVELLER INFO =================
+              _sectionContainer(
+                title: 'Traveller Information',
+                child: Column(
+                  children: List.generate(
+                    widget.selectedSeats.length,
+                    (index) => _passengerForm(index),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // ================= CONTACT INFO =================
+              _sectionContainer(
+                title: 'Contact Information',
+                child: Column(
+                  children: [
+                    _inputField(controller: _phoneController),
+                    const SizedBox(height: 12),
+                    _inputField(controller: _emailController),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ================= BOOK NOW BUTTON =================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PaymentMethodScreen(
+                            trip: widget.trip,
+                            selectedSeats:
+                                widget.selectedSeats, // Display codes
+                            selectedSeatIds: widget.selectedSeatIds, // API IDs
+                            boardingPoint: widget.boardingPoint,
+                            dropPoint: widget.dropPoint,
+                            passengerData: _passengerData,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.brown900,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Book Now',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavBar(
@@ -255,59 +265,159 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
-  // ================= COMPONENTS =================
-
-  Widget _iconBox(IconData icon) {
+  Widget _sectionContainer({required String title, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: AppColors.black.withOpacity(0.05), blurRadius: 10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+          child,
         ],
       ),
-      child: Icon(icon, color: AppColors.textDark),
     );
   }
 
-  Widget _dropdownBox({
-    required IconData icon,
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.orange200),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.brownFont),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButton<String>(
-              value: value,
-              hint: Text(hint, style: const TextStyle(color: AppColors.textLight)),
-              isExpanded: true,
-              underline: const SizedBox(),
-              items: items
-                  .map(
-                    (e) => DropdownMenuItem(
-                      value: e,
-                      child: Text(e),
-                    ),
-                  )
-                  .toList(),
-              onChanged: onChanged,
+  Widget _passengerForm(int index) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 8),
+          child: Text(
+            'Passenger ${index + 1}',
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              color: AppColors.textDark,
             ),
           ),
+        ),
+        _inputField(
+          hint: 'Name',
+          initialValue: _passengerData[index]['name'],
+          onChanged: (v) => _passengerData[index]['name'] = v,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _inputField(
+                hint: 'Age',
+                initialValue: _passengerData[index]['age'],
+                onChanged: (v) => _passengerData[index]['age'] = v,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: Row(
+                children: [
+                  _genderCheckbox(index, 'Male'),
+                  const SizedBox(width: 12),
+                  _genderCheckbox(index, 'Female'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (index < widget.selectedSeats.length - 1)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: AppColors.textGray),
+          ),
+      ],
+    );
+  }
+
+  Widget _genderCheckbox(int index, String gender) {
+    final isSelected = _passengerData[index]['gender'] == gender;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _passengerData[index]['gender'] = gender;
+        });
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.brown900 : const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: isSelected
+                ? const Icon(Icons.check, size: 14, color: AppColors.white)
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Text(gender, style: const TextStyle(color: AppColors.textDark)),
         ],
       ),
     );
+  }
+
+  Widget _inputField({
+    String? hint,
+    String? initialValue,
+    TextEditingController? controller,
+    Function(String)? onChanged,
+  }) {
+    // If initialValue provided, careful not to conflict with controller if you add one later
+    // For this simple mock, we use a stateless container wrapping a TextField if logic complex
+    // Or just a styled Container simulating typical input look
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5), // Light gray bg
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: TextField(
+        controller:
+            controller ??
+            (initialValue != null
+                ? TextEditingController(text: initialValue)
+                : null),
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textGray),
+        ),
+        style: const TextStyle(
+          color: AppColors.textDark,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  String _formatTripDateTime(Map<String, dynamic> trip) {
+    try {
+      final dep = DateTime.parse(trip['departureTime']).toLocal();
+      final arr = DateTime.parse(trip['arrivalTime']).toLocal();
+
+      final dateStr = '${dep.day}-${dep.month}-${dep.year}';
+      final timeStr =
+          '${dep.hour.toString().padLeft(2, '0')}:${dep.minute.toString().padLeft(2, '0')} - ${arr.hour.toString().padLeft(2, '0')}:${arr.minute.toString().padLeft(2, '0')}';
+
+      return '$dateStr | $timeStr';
+    } catch (e) {
+      return 'Invalid Date';
+    }
   }
 }

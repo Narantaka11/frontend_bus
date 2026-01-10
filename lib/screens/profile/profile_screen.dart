@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/service/session_manager.dart';
 import '../../widgets/bottom_nav_bar.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -58,10 +59,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _menuItem(
               'Voucher Saya',
               Icons.confirmation_num,
-              onTap: () => _showInfo(
-                'Voucher',
-                'Voucher Diskon 20%\nKode: BUS20',
-              ),
+              onTap: () =>
+                  _showInfo('Voucher', 'Voucher Diskon 20%\nKode: BUS20'),
             ),
 
             const SizedBox(height: 24),
@@ -154,8 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _email,
-                  style:
-                      AppTextStyles.caption.copyWith(color: Colors.white70),
+                  style: AppTextStyles.caption.copyWith(color: Colors.white70),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -163,6 +161,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(color: Colors.greenAccent),
                 ),
               ],
+            ),
+            const Spacer(),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                );
+              },
+              icon: const Icon(Icons.edit, color: Colors.white),
+              tooltip: 'Edit Profile',
             ),
           ],
         ),
@@ -268,8 +277,7 @@ class _AccountSettingsSheetState extends State<_AccountSettingsSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          MediaQuery.of(context).viewInsets.add(const EdgeInsets.all(20)),
+      padding: MediaQuery.of(context).viewInsets.add(const EdgeInsets.all(20)),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,9 +300,7 @@ class _AccountSettingsSheetState extends State<_AccountSettingsSheet> {
                 labelText: 'Password Baru',
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _showPassword
-                        ? Icons.visibility
-                        : Icons.visibility_off,
+                    _showPassword ? Icons.visibility : Icons.visibility_off,
                   ),
                   onPressed: () =>
                       setState(() => _showPassword = !_showPassword),
@@ -304,28 +310,24 @@ class _AccountSettingsSheetState extends State<_AccountSettingsSheet> {
             TextField(
               controller: _confirmController,
               obscureText: !_showPassword,
-              decoration:
-                  const InputDecoration(labelText: 'Konfirmasi Password'),
+              decoration: const InputDecoration(
+                labelText: 'Konfirmasi Password',
+              ),
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if (_passwordController.text !=
-                      _confirmController.text) {
+                  if (_passwordController.text != _confirmController.text) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password tidak sama'),
-                      ),
+                      const SnackBar(content: Text('Password tidak sama')),
                     );
                     return;
                   }
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Perubahan disimpan (dummy)'),
-                    ),
+                    const SnackBar(content: Text('Perubahan disimpan (dummy)')),
                   );
                 },
                 child: const Text('Simpan Perubahan'),

@@ -3,12 +3,13 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/service/route_service.dart';
 import '../../core/service/session_manager.dart';
-import '../../core/service/trip_service.dart';
+
 import '../../widgets/upcoming_journey_card.dart';
 import '../../widgets/bottom_nav_bar.dart';
 import '../booking/bus_selection_screen.dart';
+import '../booking/booking_detail_screen.dart';
 import '../profile/profile_screen.dart';
-
+import '../../core/service/booking_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,17 +71,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadRoutes() async {
     try {
       final data = await RouteService.getPublicRoutes();
-
-      final origins =
-          data.map((e) => e['origin'] as String).toSet().toList();
-      final destinations =
-          data.map((e) => e['destination'] as String).toSet().toList();
-
       if (!mounted) return;
+
       setState(() {
         _routes = data;
-        _origins = origins;
-        _destinations = destinations;
+        // Populate origins only initially
+        _origins = data.map((e) => e['origin'] as String).toSet().toList();
+        _origins.sort(); // Optional: Sort alphabetically
       });
     } catch (e) {
       debugPrint('GAGAL LOAD ROUTE: $e');
@@ -90,19 +87,64 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= LOAD UPCOMING TRIPS =================
   Future<void> _loadUpcomingTrips() async {
     try {
-      final trips = await TripService.getUpcomingTrips();
+      final bookings = await BookingService.getUpcomingBookings();
 
       if (!mounted) return;
       setState(() {
-        _upcomingTrips = trips;
+        _upcomingTrips = bookings.map((b) {
+          // Safely cast trip to Map<String, dynamic>
+          final rawTrip = b['trip'];
+          final Map<String, dynamic> trip = (rawTrip is Map)
+              ? rawTrip.map((k, v) => MapEntry(k.toString(), v))
+              : <String, dynamic>{};
+
+          return <String, dynamic>{
+            ...trip,
+            'bookingId': b['id'],
+            'status': b['status'],
+          };
+        }).toList();
       });
     } catch (e) {
       debugPrint('UPCOMING ERROR: $e');
     }
   }
 
+  // ================= FILTER DESTINATIONS =================
+  void _updateDestinations(String? origin) {
+    if (origin == null) {
+      setState(() {
+        _destinations = [];
+        _to = null;
+      });
+      return;
+    }
+
+    final availableDestinations = _routes
+        .where((r) => r['origin'] == origin)
+        .map((r) => r['destination'] as String)
+        .toSet()
+        .toList();
+
+    availableDestinations.sort();
+
+    setState(() {
+      _destinations = availableDestinations;
+      // Reset _to if it's no longer valid
+      if (_to != null && !availableDestinations.contains(_to)) {
+        _to = null;
+      }
+      _findRouteId();
+    });
+  }
+
   // ================= FIND ROUTE ID =================
   void _findRouteId() {
+    if (_from == null || _to == null) {
+      _routeId = null;
+      return;
+    }
+
     final match = _routes.firstWhere(
       (r) => r['origin'] == _from && r['destination'] == _to,
       orElse: () => {},
@@ -116,10 +158,25 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= SWAP ROUTE =================
   void _swapRoute() {
     if (_from == null || _to == null) return;
+
+    // Check if the swap is valid (i.e. if the new origin supports the new destination)
+    // For strict logic:
+    // 1. Set new From = old To
+    // 2. Update destinations for new From
+    // 3. Set new To = old From (only if valid)
+
+    final newFrom = _to;
+    final newTo = _from;
+
     setState(() {
-      final temp = _from;
-      _from = _to;
-      _to = temp;
+      _from = newFrom;
+      _updateDestinations(newFrom);
+
+      if (_destinations.contains(newTo)) {
+        _to = newTo;
+      } else {
+        _to = null;
+      }
       _findRouteId();
     });
   }
@@ -138,10 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Segera Berangkat',
-                  style: AppTextStyles.h3,
-                ),
+                child: Text('Segera Berangkat', style: AppTextStyles.h3),
               ),
               const SizedBox(height: 12),
               _upcomingJourney(),
@@ -177,9 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
             case 3:
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const ProfileScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
               );
               break;
           }
@@ -190,7 +242,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= UPCOMING JOURNEY WIDGET =================
   Widget _upcomingJourney() {
-
     if (_upcomingTrips.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(20),
@@ -209,13 +260,28 @@ class _HomeScreenState extends State<HomeScreen> {
         final to = trip['route']?['destination'] ?? '-';
         final departureTime = trip['departureTime'] ?? '';
 
+        return GestureDetector(
+          onTap: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    BookingDetailScreen(bookingId: trip['bookingId']),
+              ),
+            );
 
-        return UpcomingJourneyCard(
-        index: index + 1,
-        busName: busName,
-        origin: from,
-        destination: to,
-        departureTime: departureTime,
+            // If result is true (returned from pop), refresh the list
+            if (result == true) {
+              _loadUpcomingTrips();
+            }
+          },
+          child: UpcomingJourneyCard(
+            index: index + 1,
+            busName: busName,
+            origin: from,
+            destination: to,
+            departureTime: departureTime,
+          ),
         );
       },
     );
@@ -241,10 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Halo $_userName!',
                   style: AppTextStyles.h4.copyWith(fontSize: 16),
                 ),
-                Text(
-                  'Mau ke mana hari ini?',
-                  style: AppTextStyles.caption,
-                ),
+                Text('Mau ke mana hari ini?', style: AppTextStyles.caption),
               ],
             ),
           ),
@@ -259,44 +322,64 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: AppColors.brown900,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(30),
         ),
         child: Column(
           children: [
-            _dropdown('Kota Asal', _origins, _from, (v) {
-              setState(() {
-                _from = v;
-                _findRouteId();
-              });
-            }),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _swapRoute,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: AppColors.orangeButton,
-                  shape: BoxShape.circle,
+            // FROM & TO Inputs with Swap Button
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Column(
+                  children: [
+                    _dropdown('Boarding From', _origins, _from, (v) {
+                      setState(() {
+                        _from = v;
+                        _updateDestinations(v);
+                      });
+                    }),
+                    const SizedBox(height: 16),
+                    _dropdown('Where are you going?', _destinations, _to, (v) {
+                      setState(() {
+                        _to = v;
+                        _findRouteId();
+                      });
+                    }),
+                  ],
                 ),
-                child: const Icon(Icons.swap_vert,
-                    color: AppColors.white, size: 20),
-              ),
+                Positioned(
+                  right: 24, // Positioned slightly to the right
+                  child: GestureDetector(
+                    onTap: _swapRoute,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: AppColors.orange400,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.swap_vert,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            _dropdown('Kota Tujuan', _destinations, _to, (v) {
-              setState(() {
-                _to = v;
-                _findRouteId();
-              });
-            }),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // Date Selection
             _dateSelector(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // Find Buses Button
             SizedBox(
               width: double.infinity,
+              height: 56, // Fixed height for button
               child: ElevatedButton(
                 onPressed: _canSearch
                     ? () {
@@ -313,12 +396,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  foregroundColor: AppColors.brown900,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: Text(
-                  'Cari Bus',
-                  style: AppTextStyles.button
-                      .copyWith(color: AppColors.brownFont),
+                child: const Text(
+                  'Find Buses',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brown900,
+                  ),
                 ),
               ),
             ),
@@ -338,20 +428,39 @@ class _HomeScreenState extends State<HomeScreen> {
     final safeValue = items.contains(value) ? value : null;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF5E6D3), // Light beige color for input
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: DropdownButton<String>(
-        value: safeValue,
-        hint: Text(hint),
-        isExpanded: true,
-        underline: const SizedBox(),
-        items: items
-            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-            .toList(),
-        onChanged: onChanged,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: safeValue,
+          hint: Text(
+            hint,
+            style: TextStyle(
+              color: AppColors.brown900.withOpacity(0.4),
+              fontSize: 16,
+            ),
+          ),
+          icon: const SizedBox(), // Hide default icon
+          isExpanded: true,
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(
+                    e,
+                    style: const TextStyle(
+                      color: AppColors.brown900,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -361,24 +470,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         _dateChip(
-          'Hari ini',
+          'Today',
           isSelected: _isSameDay(_selectedDate, DateTime.now()),
           onTap: () => setState(() => _selectedDate = DateTime.now()),
         ),
         const SizedBox(width: 12),
         _dateChip(
-          'Besok',
+          'Tomorrow',
           isSelected: _isSameDay(
             _selectedDate,
             DateTime.now().add(const Duration(days: 1)),
           ),
-          onTap: () => setState(() =>
-              _selectedDate = DateTime.now().add(const Duration(days: 1))),
+          onTap: () => setState(
+            () => _selectedDate = DateTime.now().add(const Duration(days: 1)),
+          ),
         ),
         const SizedBox(width: 12),
         _dateChip(
-          'Tanggal lain',
-          isSelected: false,
+          'Other',
+          icon: Icons.calendar_month_outlined,
+          isSelected:
+              !_isSameDay(_selectedDate, DateTime.now()) &&
+              !_isSameDay(
+                _selectedDate,
+                DateTime.now().add(const Duration(days: 1)),
+              ),
           onTap: _pickOtherDate,
         ),
       ],
@@ -387,6 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _dateChip(
     String label, {
+    IconData? icon,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
@@ -396,19 +513,26 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.white),
+            color: isSelected ? AppColors.brown800 : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.brown700, width: 1.5),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color:
-                    isSelected ? AppColors.brownFont : AppColors.white,
-                fontWeight: FontWeight.w600,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: AppColors.white),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -430,18 +554,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= ICON BOX =================
   Widget _iconBox(IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
+        shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: AppColors.textDark),
+      child: Icon(icon, color: AppColors.brown900),
     );
   }
 }

@@ -16,6 +16,7 @@ class BottomNavBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
             color: AppColors.black.withOpacity(0.05),
@@ -24,91 +25,43 @@ class BottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: onTap,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: AppColors.background,
-        selectedItemColor: AppColors.brown900,
-        unselectedItemColor: AppColors.brownFont,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        elevation: 0,
-        items: [
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: currentIndex == 0
-                    ? AppColors.brown900
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.home_outlined,
-                color: currentIndex == 0
-                    ? AppColors.white
-                    : AppColors.brownFont,
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: currentIndex == 1
-                    ? AppColors.brown900
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.confirmation_number_outlined,
-                color: currentIndex == 1
-                    ? AppColors.white
-                    : AppColors.brownFont,
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: currentIndex == 2
-                    ? AppColors.brown900
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.account_balance_wallet_outlined,
-                color: currentIndex == 2
-                    ? AppColors.white
-                    : AppColors.brownFont,
-              ),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: currentIndex == 3
-                    ? AppColors.brown900
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.settings_outlined,
-                color: currentIndex == 3
-                    ? AppColors.white
-                    : AppColors.brownFont,
-              ),
-            ),
-            label: '',
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: onTap,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: AppColors.background,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          elevation: 0,
+          items: [
+            _buildNavItem(Icons.home_outlined, 0),
+            _buildNavItem(Icons.confirmation_number_outlined, 1),
+            _buildNavItem(Icons.account_balance_wallet_outlined, 2),
+            _buildNavItem(Icons.settings_outlined, 3),
+          ],
+        ),
       ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavItem(IconData icon, int index) {
+    final isSelected = currentIndex == index;
+    return BottomNavigationBarItem(
+      icon: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.brown900 : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: isSelected ? AppColors.white : AppColors.brownFont,
+          size: 24,
+        ),
+      ),
+      label: '',
     );
   }
 }
