@@ -1,5 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../../core/config/api_config.dart';
 import '../../core/service/admin_service.dart';
+import '../../core/service/session_manager.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 
 class AdminUserScreen extends StatefulWidget {
@@ -15,87 +21,161 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  void _load() {
     _usersFuture = AdminService.getUsers();
   }
+
+  Future<void> _refresh() async {
+    setState(_load);
+  }
+
+  // ================= ACTION =================
+
+  Future<void> _promote(String id) async {
+    final token = await SessionManager.getToken();
+    await http.put(
+      Uri.parse('${ApiConfig.baseUrl}admin/users/$id/promote'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    _refresh();
+  }
+
+  Future<void> _demote(String id) async {
+    final token = await SessionManager.getToken();
+    await http.put(
+      Uri.parse('${ApiConfig.baseUrl}admin/users/$id/demote'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    _refresh();
+  }
+
+  Future<void> _createUser() async {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    String role = 'USER';
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Tambah User'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nama')),
+              TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Email')),
+              TextField(controller: passCtrl, decoration: const InputDecoration(labelText: 'Password')),
+              const SizedBox(height: 8),
+              DropdownButtonFormField(
+                value: role,
+                items: const [
+                  DropdownMenuItem(value: 'USER', child: Text('USER')),
+                  DropdownMenuItem(value: 'ADMIN', child: Text('ADMIN')),
+                ],
+                onChanged: (v) => role = v.toString(),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          ElevatedButton(
+            onPressed: () async {
+              final token = await SessionManager.getToken();
+              await http.post(
+                Uri.parse('${ApiConfig.baseUrl}admin/users'),
+                headers: {
+                  'Authorization': 'Bearer $token',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({
+                  'name': nameCtrl.text,
+                  'email': emailCtrl.text,
+                  'password': passCtrl.text,
+                  'role': role,
+                }),
+              );
+              Navigator.pop(context);
+              _refresh();
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _roleColor(String role) =>
+      role == 'ADMIN' ? Colors.red : Colors.grey;
+
+  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kelola Users')),
+      appBar: AppBar(
+        title: const Text('Kelola Users'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.brownFont,
+        onPressed: _createUser,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _usersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+        builder: (context, s) {
+          if (s.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final users = snapshot.data ?? [];
+          final users = s.data ?? [];
           if (users.isEmpty) {
-            return const Center(child: Text('Tidak ada data user.'));
+            return const Center(child: Text('Tidak ada data user'));
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              setState(() {
-                _usersFuture = AdminService.getUsers();
-              });
-            },
-            child: ListView.separated(
+            onRefresh: _refresh,
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: users.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final user = users[index];
-                final role = user['role'] ?? 'USER';
+              itemBuilder: (_, i) {
+                final u = users[i];
+                final role = u['role'];
+
                 return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: role == 'ADMIN'
-                          ? Colors.purple[100]
-                          : Colors.blue[100],
-                      child: Icon(
-                        role == 'ADMIN'
-                            ? Icons.admin_panel_settings
-                            : Icons.person,
-                        color: role == 'ADMIN' ? Colors.purple : Colors.blue,
-                      ),
+                    title: Text(u['name'], style: AppTextStyles.bodyMedium),
+                    subtitle: Text(u['email']),
+                    leading: Chip(
+                      label: Text(role),
+                      backgroundColor: _roleColor(role),
+                      labelStyle: const TextStyle(color: Colors.white),
                     ),
-                    title: Text(
-                      user['name'] ?? 'Unnamed User',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      user['email'] ?? '',
-                      style: AppTextStyles.caption,
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: role == 'ADMIN'
-                            ? Colors.purple[50]
-                            : Colors.blue[50],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        role,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: role == 'ADMIN' ? Colors.purple : Colors.blue,
-                        ),
-                      ),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (v) {
+                        if (v == 'promote') _promote(u['id']);
+                        if (v == 'demote') _demote(u['id']);
+                      },
+                      itemBuilder: (_) => [
+                        if (role == 'USER')
+                          const PopupMenuItem(
+                            value: 'promote',
+                            child: Text('Promote to Admin'),
+                          ),
+                        if (role == 'ADMIN')
+                          const PopupMenuItem(
+                            value: 'demote',
+                            child: Text('Demote to User'),
+                          ),
+                      ],
                     ),
                   ),
                 );

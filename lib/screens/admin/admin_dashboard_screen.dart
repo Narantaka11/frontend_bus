@@ -64,9 +64,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
-        actions: [
-          IconButton(onPressed: _handleLogout, icon: const Icon(Icons.logout)),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -80,6 +77,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   children: [
                     Text('Ringkasan Data', style: AppTextStyles.h2),
                     const SizedBox(height: 24),
+
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -114,9 +112,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 40),
                     Text('Menu Cepat', style: AppTextStyles.h2),
                     const SizedBox(height: 16),
+
                     _buildMenuTile(
                       'Kelola Bookings',
                       'Lihat dan kelola pesanan tiket',
@@ -140,6 +140,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       'Manajemen akun pengguna',
                       Icons.person_outline,
                       () => Navigator.pushNamed(context, '/admin/users'),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // ================= LOGOUT (PINDAH KE BAWAH) =================
+                    _buildMenuTile(
+                      'Logout',
+                      'Keluar dari akun admin',
+                      Icons.logout,
+                      _handleLogout,
                     ),
                   ],
                 ),
